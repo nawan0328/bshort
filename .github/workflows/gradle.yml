@@ -26,7 +26,9 @@ jobs:
 
       - name: Create application.properties
         run: |
-          echo "NOTHING"
+          echo "server.ssl.key-store=${{ secrets.CONTAINER_SSL_PATH }}" >> src/main/resources/application.properties
+          echo "server.ssl.key-store-password=${{ secrets.SSL_PASSWORD }}" >> src/main/resources/application.properties
+          echo "server.ssl.key-alias=${{ secrets.SSL_NAME }}" >> src/main/resources/application.properties
 
       - name: Build JAR
         run: ./gradlew clean build -x test
@@ -60,12 +62,14 @@ jobs:
           NAS_PORT: ${{ secrets.NAS_PORT }}
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          HOST_SSL_PATH: ${{ secrets.HOST_SSL_PATH }}
+          CONTAINER_SSL_PATH: ${{ secrets.CONTAINER_SSL_PATH }}
         run: |
           sshpass -p "$NAS_PASSWORD" ssh -o StrictHostKeyChecking=no $NAS_USERNAME@$NAS_HOST -p$NAS_PORT <<EOF
             docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             docker pull $DOCKER_USERNAME/bshort:latest
             docker stop bshort || true
             docker rm bshort || true
-            docker run -d --name bshort -p 9300:8080 $DOCKER_USERNAME/bshort:latest
+            docker run -d --name bshort -p 8443:8443 $DOCKER_USERNAME/bshort:latest -v $HOST_SSL_PATH:$CONTAINER_SSL_PATH:ro
           EOF
 

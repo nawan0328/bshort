@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# SSL 인증서 및 키스토어 파일
+*.p12
+*.pem
+*.key
