@@ -1,0 +1,71 @@
+name: CI/CD using GitHub Actions & Docker
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for Gradle
+        run: chmod +x ./gradlew
+
+      - name: Create application.properties
+        run: |
+          echo "NOTHING"
+
+      - name: Build JAR
+        run: ./gradlew clean build -x test
+
+      - name: Set artifact name
+        run: |
+          ARTIFACT=$(ls ./build/libs/*.jar | xargs -n 1 basename)
+          ARTIFACT_CLEANED=$(echo "$ARTIFACT" | tr -d '\r\n')
+          echo "artifact=$ARTIFACT_CLEANED" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bshort:latest .
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/bshort:latest
+
+      - name: Set up SSH connection
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to NAS (via SSH)
+        env:
+          NAS_USERNAME: ${{ secrets.NAS_USERNAME }}
+          NAS_PASSWORD: ${{ secrets.NAS_PASSWORD }}
+          NAS_HOST: ${{ secrets.NAS_HOST }}
+          NAS_PORT: ${{ secrets.NAS_PORT }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          sshpass -p "$NAS_PASSWORD" ssh -o StrictHostKeyChecking=no $NAS_USERNAME@$NAS_HOST -p$NAS_PORT <<EOF
+            docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            docker pull $DOCKER_USERNAME/bshort:latest
+            docker stop bshort || true
+            docker rm bshort || true
+            docker run -d --name bshort -p 9300:8080 $DOCKER_USERNAME/bshort:latest
+          EOF
+
