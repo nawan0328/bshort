@@ -70,6 +70,6 @@ jobs:
             docker pull $DOCKER_USERNAME/bshort:latest
             docker stop bshort || true
             docker rm bshort || true
-            docker run -d --name bshort -p 8443:8443 $DOCKER_USERNAME/bshort:latest -v $HOST_SSL_PATH:$CONTAINER_SSL_PATH:ro
+            docker run -d --name bshort -p 8443:8443 -v $HOST_SSL_PATH:$CONTAINER_SSL_PATH:ro $DOCKER_USERNAME/bshort:latest
           EOF
 
