@@ -9,8 +9,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class BshortController implements ErrorController {
 
 	@GetMapping("/bshort")
-	public String hello(Model model) {
+	public String hello() {
 	    return "bshort";
+	}
+	
+	@GetMapping("/ws")
+	public String ws() {
+	    return "ws";
 	}
 	
   @GetMapping("/error")

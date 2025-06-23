@@ -7,6 +7,11 @@
 const button = document.getElementById('start');
 const canvas = document.getElementById('outputCanvas');
 const ctx = canvas.getContext('2d');
+//스무딩 제거
+ctx.imageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.webkitImageSmoothingEnabled = false;
+ctx.msImageSmoothingEnabled = false;
 
 button.addEventListener('click', async () => {
 	try {
